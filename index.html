@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gidget's Word Gacha</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
@@ -677,7 +678,10 @@ function renderCapsules(){
     glyph.textContent = unlocked ? '★' : '?';
     cap.appendChild(top); cap.appendChild(bot); cap.appendChild(glyph);
     if(unlocked){
-      cap.addEventListener('click', () => openModal(todayWords[i]));
+      cap.addEventListener('click', () => {
+        if(fetchInProgress) return; // don't interrupt a fetch in progress
+        openModal(todayWords[i]);
+      });
     }
     row.appendChild(cap);
   }
@@ -695,7 +699,7 @@ function updateStatusAndButton(){
     btn.textContent = '✅ ALL FETCHED FOR TODAY';
     statusEl.textContent = 'nice! Gidget is taking a nap until tomorrow.';
   } else {
-    btn.disabled = false;
+    btn.disabled = fetchInProgress;
     btn.textContent = '🐾 SEND GIDGET TO FETCH A WORD';
     const left = GROUP_SIZE - state.pulledSlots.length;
     statusEl.textContent = left + ' word' + (left === 1 ? '' : 's') + ' left to fetch today';
@@ -708,7 +712,10 @@ function updateFooterCountdown(){
   footer.textContent = 'new set of 5 words in ' + fmtCountdown(msUntilMidnight());
 }
 
+let modalWord = null;
+
 function openModal(word){
+  modalWord = word;
   document.getElementById('modalPOS').textContent = word.p.toUpperCase();
   document.getElementById('modalWord').textContent = word.w.toUpperCase();
   document.getElementById('modalPron').textContent = '/ ' + word.pr + ' /';
@@ -754,6 +761,7 @@ function getOffscreenDistance(){
 }
 
 async function doFetch(){
+  if(fetchInProgress) return; // one fetch at a time
   const slot = nextUnpulledSlot();
   if(slot === -1) return;
   fetchInProgress = true;
@@ -808,7 +816,8 @@ async function init(){
     updateStatusAndButton();
   });
   document.getElementById('modalSpeak').addEventListener('click', () => {
-    speakWord(document.getElementById('modalWord').textContent);
+    // speak the normal-case word; some voices spell out ALL-CAPS text letter by letter
+    if(modalWord) speakWord(modalWord.w);
   });
   document.getElementById('modalBg').addEventListener('click', (e) => {
     if(e.target.id === 'modalBg'){
@@ -819,12 +828,26 @@ async function init(){
       updateStatusAndButton();
     }
   });
-  document.getElementById('devResetBtn').addEventListener('click', () => {
+  // testing-only reset: hidden unless the page is opened with ?dev in the URL
+  const devResetBtn = document.getElementById('devResetBtn');
+  if(!new URLSearchParams(location.search).has('dev')) devResetBtn.style.display = 'none';
+  devResetBtn.addEventListener('click', () => {
     try{ localStorage.removeItem('wp_state'); }catch(e){ /* nothing stored yet */ }
     location.reload();
   });
 
-  setInterval(updateFooterCountdown, 1000);
+  setInterval(tick, 1000);
+}
+
+/* Runs every second: updates the countdown, and swaps in the new day's words
+   at midnight if the page has been left open. */
+async function tick(){
+  updateFooterCountdown();
+  if(fetchInProgress || state.date === dateKey(new Date())) return;
+  todayWords = getTodayWords();
+  await initState();
+  renderCapsules();
+  updateStatusAndButton();
 }
 
 init();
