@@ -7,6 +7,8 @@ sentence. Collect all 5 to keep your daily streak going.
 
 All of Gidget's sprites (idle, walking, licking, carrying) are hand-drawn pixel art.
 
+**▶ Play it: https://emmalaszlo.github.io/gidget-word-gacha/**
+
 ## Features
 - 5 words a day from a 50-word bank, picked by a seeded shuffle, so everyone gets the same set each day
 - Frame-by-frame walk-cycle animation
@@ -18,7 +20,12 @@ All of Gidget's sprites (idle, walking, licking, carrying) are hand-drawn pixel 
 ## Tech
 - Plain HTML, CSS, and JavaScript in a single file, with no framework or build step
 - Hand-drawn 64×64 PNG sprites embedded as data URIs
-- Deployed on Fly.io in an nginx Docker container
+- Hosted on GitHub Pages
+
+## Deployment
+The game was first deployed on Fly.io as temporary hosting, served from an nginx
+Docker container (see the `Dockerfile`). It now lives on GitHub Pages, which
+redeploys automatically on every push to `main`.
 
 ## Run locally
 Open `index.html` in a browser. Add `?dev` to the URL to show a button that resets today's progress.
